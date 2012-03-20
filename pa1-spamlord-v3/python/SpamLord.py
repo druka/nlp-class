@@ -3,8 +3,6 @@ import os
 import re
 import pprint
 
-my_first_pat = '(\w+)@(\w+).edu'
-
 """ 
 TODO
 This function takes in a filename along with the file object (actually
@@ -31,12 +29,25 @@ def process_file(name, f):
     # sys.stderr.write('[process_file]\tprocessing file: %s\n' % (path))
     res = []
     for line in f:
-        matches = re.findall(my_first_pat,line)
-        for m in matches:
-            email = '%s@%s.edu' % m
-            res.append((name,'e',email))
+        process_line(name, line, '((?:\w|\.)+)\s*(?:@|&#x40;)\s*((?:\w|\.)+)\.(?:edu|EDU)', '%s@%s.edu', 'e', res)
+        process_line(name, line, '(\w+) (?:at|WHERE) ((?:(?:\w+)(?:\.|;| | do?t | DOM ))+)(edu|com)[^a-z ]', '%s@%s%s', 'e', res, '( do?t | DOM |;| )', '.')
+        process_line(name, line, '((?:[a-z]-)+)@((?:-[a-z])+)-\.-e-d-u', '%s@%s.edu', 'e', res, '-', '')
+        process_line(name, line, '(obfuscate)\(\'((?:\w|\.)+)\',\'((?:\w|\.)+)\'\)', '%s@%s', 'e', res)
+        process_line(name, line, '((?:\w|\.)+) \(followed by (?:"|&ldquo;)@((?:\w|\.)+)\.edu(?:"|&rdquo;)\)', '%s@%s.edu', 'e', res)
+        process_line(name, line, '(\d{3})(?:-| )(\d{3})(?:-| )(\d{4})', '%s-%s-%s', 'p', res)
+        process_line(name, line, '\((\d{3})\)\s*(\d{3}-\d{4})', '%s-%s', 'p', res)
     return res
 
+def process_line(name, line, pattern, format, type, results, replace=False, replacement=False):
+    matches = re.findall(pattern, line)
+    for m in matches:
+        if m[0] == 'obfuscate':
+            m = (m[2], m[1])
+        result = format % m
+        if replace:
+            result = re.sub(replace, replacement, result)
+        results.append((name, type, result))
+    
 """
 You should not need to edit this function, nor should you alter
 its interface as it will be called directly by the submit script
