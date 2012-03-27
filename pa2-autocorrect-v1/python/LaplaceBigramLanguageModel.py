@@ -29,10 +29,9 @@ class LaplaceBigramLanguageModel:
     score = 0.0
     prior_word = None
     for token in sentence:
-      if prior_word:
-        bigram_count = self.bigrams.get((prior_word, token), 0.0)
-        prior_count  = self.unigrams.get(prior_word, 0.0)
-        probability  = (bigram_count + 1) / (prior_count + len(self.unigrams))
-        score += math.log(probability)
+      bigram_count = self.bigrams.get((prior_word, token), 0.0)
+      prior_count  = self.unigrams.get(prior_word, 0.0)
+      probability  = (bigram_count + 1) / (prior_count + len(self.unigrams))
+      score += math.log(probability)
       prior_word = token
     return score
