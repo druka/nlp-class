@@ -39,29 +39,59 @@ class NaiveBayes:
     self.FILTER_STOP_WORDS = False
     self.stopList = set(self.readFile('../data/english.stop'))
     self.numFolds = 10
+    self.classes  = ['pos', 'neg']
+    self.total    = 0.0
+    
+    self.documents = {}
+    for klass in self.classes:
+      self.documents[klass] = []
 
   #############################################################################
   # TODO TODO TODO TODO TODO 
   
   def classify(self, words):
-    """ TODO
-      'words' is a list of words to classify. Return 'pos' or 'neg' classification.
-    """
-    return 'pos'
-  
+    results = {}
+    for klass in self.classes:
+      w = self.countWords(klass)
+      v = self.countVocab(klass)
+      logprob = math.log(len(self.documents[klass]) / self.total)
+      for word in words:
+        p_word = (self.countWord(klass, word) + 1) / (w + v)
+        logprob += math.log(p_word)
+      results[klass] = logprob
+    return 'pos' if results['pos'] > results['neg'] else 'neg'
+
+
+  def countWord(self, klass, word):
+    count = 0.0
+    for document in self.documents[klass]:
+      count += document.get(word, 0)
+    return count
+
+
+  def countWords(self, klass):
+    words = 0.0
+    for document in self.documents[klass]:
+      for word in document:
+        words += document[word]
+    return words
+
+
+  def countVocab(self, klass):
+    vocab = {}
+    for document in self.documents[klass]:
+      for word in document:
+        vocab[word] = True
+    return len(vocab)
+
 
   def addExample(self, klass, words):
-    """
-     * TODO
-     * Train your model on an example document with label klass ('pos' or 'neg') and
-     * words, a list of strings.
-     * You should store whatever data structures you use for your classifier 
-     * in the NaiveBayes class.
-     * Returns nothing
-    """
-    pass
+    self.total += 1
+    document = {}
+    for word in words:
+      document[word] = document.get(word, 0.0) + 1
+    self.documents[klass].append(document)
       
-
   # TODO TODO TODO TODO TODO 
   #############################################################################
   
