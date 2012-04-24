@@ -1,4 +1,4 @@
-import json, sys
+import json, re, sys
 import base64
 from Datum import Datum
 
@@ -34,8 +34,8 @@ class FeatureFactory:
         added enough features, take out the features that you don't need. 
 	"""
 
-
-	""" TODO: Add your features here """
+        if re.match("^[A-Z]", currentWord):
+          features.append("case=Uppercase")
 
         return features
 
