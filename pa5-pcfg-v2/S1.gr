@@ -6,14 +6,40 @@
 
 # This is a very, very, very simple grammar to get you started.
 
-1	S1	NP VP .
+1	S1	MP VerbT MP .
+1	S1	MP ?
+1	S1	MP Proper MP ?
+1	S1	MP NP ?
+1	S1	MP Prep Det Misc .
+1	S1	NP MP .
+1	S1	NP MP Prep NP .
+1	S1	MP VerbT NP MP NP !
+1	S1	MP NP MP NP MP .
+1	S1	MP NP MP NP MP Prep MP .
+1	S1	MP by MP Noun .
+1	S1	NP MP Prep MP Noun .
+1	S1	MP .
+1	S1	MP !
+1	S1	NP MP Prep MP .
+1	S1	NP , MP , VerbT MP Noun .
+1	S1	NP MP NP , Det MP Noun .
+1	S1	NP MP NP MP .
+1	S1	MP Prep MP Noun .
+1	S1	NP MP NP MP Noun .
+1	S1	MP NP VerbT , NP VerbT .
+
+2	S1	NP VP .
+
+1	MP	Det MP
+1	MP	Misc MP
+1	MP	Misc
 
 1	VP	VerbT NP
 
-20	NP	Det Nbar
+1	NP	Det Nbar
 1	NP	Proper
 
-20	Nbar	Noun
+1	Nbar	Noun
 1	Nbar	Nbar PP
 
 1	PP	Prep NP
