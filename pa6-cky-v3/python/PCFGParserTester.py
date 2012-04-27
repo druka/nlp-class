@@ -25,12 +25,35 @@ class Parser:
 class PCFGParser(Parser):
 
     def train(self, train_trees):
-        # TODO: before you generate your grammar, the training
-        #       trees need to be binarized so that rules are at
-        #       most binary
+        for i in range(len(train_trees)):
+          print train_trees[i]
+          train_trees[i] = self.binarize_tree(train_trees[i])
+          print train_trees[i]
+          print
 
         self.lexicon = Lexicon(train_trees)
         self.grammar = Grammar(train_trees)
+
+
+    def binarize_tree(self, tree):
+        if not tree or tree.is_leaf(): return tree
+        return self.binarize_list('', tree.label, tree.children)
+
+
+    def binarize_list(self, nlabel, llabel, list):
+        left = self.binarize_tree(list[0])
+        children = [left]
+        if len(list) == 0:
+            return None
+        elif len(list) == 1:
+            return Tree(llabel, children)
+        elif len(list) == 2:
+            children.append(self.binarize_tree(list[1]))
+            return Tree(llabel, children)
+        else:
+            right = self.binarize_list(llabel, left.label, list[1:])
+            if right: children.append(right)
+            return Tree('@' + nlabel + '_' + llabel, children)
 
 
     def get_best_parse(self, sentence):
