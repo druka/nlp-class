@@ -37,23 +37,21 @@ class PCFGParser(Parser):
 
     def binarize_tree(self, tree):
         if not tree or tree.is_leaf(): return tree
-        return self.binarize_list('', tree.label, tree.children)
+        return self.binarize_list(tree.label, tree.children)
 
 
-    def binarize_list(self, nlabel, llabel, list):
+    def binarize_list(self, label, list):
         left = self.binarize_tree(list[0])
         children = [left]
-        if len(list) == 0:
-            return None
-        elif len(list) == 1:
-            return Tree(llabel, children)
+        if len(list) == 1:
+            return Tree(label, children)
         elif len(list) == 2:
             children.append(self.binarize_tree(list[1]))
-            return Tree(llabel, children)
+            return Tree(label, children)
         else:
-            right = self.binarize_list(llabel, left.label, list[1:])
+            right = self.binarize_list('@' + label + '_' + left.label, list[1:])
             if right: children.append(right)
-            return Tree('@' + nlabel + '_' + llabel, children)
+            return Tree(label, children)
 
 
     def get_best_parse(self, sentence):
