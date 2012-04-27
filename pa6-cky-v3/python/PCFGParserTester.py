@@ -1,6 +1,7 @@
 import collections
 import copy
 import optparse
+import re
 
 from ling.Tree import Tree
 import ling.Trees as Trees
@@ -26,7 +27,7 @@ class PCFGParser(Parser):
 
     def train(self, train_trees):
         for i in range(len(train_trees)):
-          train_trees[i] = self.binarize_tree(train_trees[i])
+            train_trees[i] = self.binarize_tree(train_trees[i])
 
         self.lexicon = Lexicon(train_trees)
         self.grammar = Grammar(train_trees)
@@ -83,14 +84,7 @@ class PCFGParser(Parser):
                     right = grid[x][y+j+1]
                     self.calculate_scores(cell, left, right, x, y, j)
         
-        root = grid[len(sentence) - 1][0]
-        max  = (None, 0.0)
-        for tag in root:
-            prob = self.max_prob(root[tag])[2]
-            if prob > max[1]:
-                max = (tag, prob)
-        
-        tree = self.build_tree(grid, max[0], len(sentence) - 1, 0)
+        tree = self.build_tree(grid, 'S', len(sentence) - 1, 0)
         return Tree('ROOT', [tree])
 
 
@@ -131,7 +125,10 @@ class PCFGParser(Parser):
         cause = self.max_prob(cell[tag])
         
         if cause[0] == None:
-            return Tree(tag, [self.build_tree(grid, cause[1], x, y)])
+            if cause[1] == tag:
+                return Tree(tag, [Tree(tag, [])])
+            else:
+                return Tree(tag, [self.build_tree(grid, cause[1], x, y)])
         
         left  = self.build_tree(grid, cause[0][0], cause[0][1], cause[0][2])
         right = self.build_tree(grid, cause[1][0], cause[1][1], cause[1][2])
