@@ -69,9 +69,9 @@ class PCFGParser(Parser):
             cell = grid[i][i] = {}
             for tag in self.lexicon.get_all_tags():
                 score = self.lexicon.score_tagging(word, tag)
-                cell[tag] = [(None, word, score)]
+                cell[tag] = (None, word, score)
                 for rule in self.grammar.get_unary_rules_by_child(tag):
-                    cell[rule.parent] = [(None, tag, score * rule.score)]
+                    cell[rule.parent] = (None, tag, score * rule.score)
         
         for i in range(len(sentence) - 1):
             row = i + 1
@@ -93,36 +93,33 @@ class PCFGParser(Parser):
             for rule in self.grammar.get_binary_rules_by_left_child(ltag):
                 rtag = rule.right_child
                 if rtag in right:
-                    lval = self.max_prob(left[ltag])[2]
-                    rval = self.max_prob(right[rtag])[2]
-                    cell[rule.parent] = cell.get(rule.parent, [])
+                    lval = left[ltag][2]
+                    rval = right[rtag][2]
                     cause = ((ltag,y+j,y), (rtag,x,y+j+1), lval * rval * rule.score)
-                    cell[rule.parent].append(cause)
+                    self.store_cause(cell, rule.parent, cause)
         
         unaries = {}
         for tag in cell:
             for rule in self.grammar.get_unary_rules_by_child(tag):
-                unaries[rule.parent] = unaries.get(rule.parent, [])
-                cause = (None, tag, self.max_prob(cell[tag])[2] * rule.score)
-                unaries[rule.parent].append(cause)
+                cause = (None, tag, cell[tag][2] * rule.score)
+                self.store_cause(unaries, rule.parent, cause)
         
         for tag in unaries:
-            cell[tag] = cell.get(tag, [])
-            cell[tag] = cell[tag] + unaries[tag]
+            self.store_cause(cell, tag, unaries[tag])
 
 
-    def max_prob(self, causes):
-        prob = (None, None, 0.0)
-        for cause in causes:
-            prob = cause if cause[2] > prob[2] else prob
-        return prob
+    def store_cause(self, cell, tag, cause):
+        if tag in cell and cell[tag][2] > cause[2]:
+            cell[tag]
+        else:
+            cell[tag] = cause
 
 
     def build_tree(self, grid, tag, x, y):
         cell = grid[x][y]
         if not tag in cell: return Tree(tag, [])
         
-        cause = self.max_prob(cell[tag])
+        cause = cell[tag]
         
         if cause[0] == None:
             if cause[1] == tag:
