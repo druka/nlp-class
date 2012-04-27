@@ -56,7 +56,32 @@ class PCFGParser(Parser):
         Should return a Tree.
         'sentence' is a list of strings (words) that form a sentence.
         """
-        # TODO: implement this method
+        grid = []
+        for i in range(len(sentence)):
+            row = []
+            grid.append(row)
+            for i in range(len(sentence)):
+                row.append(None)
+        
+        for i in range(len(sentence)):
+            word = sentence[i]
+            cell = grid[i][i] = {}
+            for tag in self.lexicon.get_all_tags():
+                score = self.lexicon.score_tagging(word, tag)
+                cell[tag] = score
+        
+        for i in range(len(sentence) - 1):
+            row = i + 1
+            for col in range(len(sentence) - row):
+                x = col + row
+                y = col
+                cell = grid[x][y] = {}
+                for j in range(row):
+                    left  = grid[y+j][y]
+                    right = grid[x][y+j+1]
+        
+        print grid
+        print
 
         return None
 
