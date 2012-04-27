@@ -26,10 +26,7 @@ class PCFGParser(Parser):
 
     def train(self, train_trees):
         for i in range(len(train_trees)):
-          print train_trees[i]
           train_trees[i] = self.binarize_tree(train_trees[i])
-          print train_trees[i]
-          print
 
         self.lexicon = Lexicon(train_trees)
         self.grammar = Grammar(train_trees)
@@ -50,7 +47,7 @@ class PCFGParser(Parser):
             return Tree(label, children)
         else:
             right = self.binarize_list('@' + label + '_' + left.label, list[1:])
-            if right: children.append(right)
+            children.append(right)
             return Tree(label, children)
 
 
