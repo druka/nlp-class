@@ -68,7 +68,9 @@ class PCFGParser(Parser):
             cell = grid[i][i] = {}
             for tag in self.lexicon.get_all_tags():
                 score = self.lexicon.score_tagging(word, tag)
-                cell[tag] = score
+                cell[tag] = [(None, word, score)]
+                for rule in self.grammar.get_unary_rules_by_child(tag):
+                    cell[rule.parent] = [(None, tag, score * rule.score)]
         
         for i in range(len(sentence) - 1):
             row = i + 1
@@ -79,11 +81,68 @@ class PCFGParser(Parser):
                 for j in range(row):
                     left  = grid[y+j][y]
                     right = grid[x][y+j+1]
+                    self.calculate_scores(cell, left, right, x, y, j)
         
-        print grid
-        print
+        root = grid[len(sentence) - 1][0]
+        max  = (None, 0.0)
+        for tag in root:
+            prob = self.max_prob(root[tag])[2]
+            if prob > max[1]:
+                max = (tag, prob)
+        
+        tree = self.build_tree(grid, max[0], len(sentence) - 1, 0)
+        return Tree('ROOT', [tree])
 
-        return None
+
+    def calculate_scores(self, cell, left, right, x, y, j):
+        for ltag in left:
+            for rule in self.grammar.get_binary_rules_by_left_child(ltag):
+                rtag = rule.right_child
+                if rtag in right:
+                    lval = self.max_prob(left[ltag])[2]
+                    rval = self.max_prob(right[rtag])[2]
+                    cell[rule.parent] = cell.get(rule.parent, [])
+                    cause = ((ltag,y+j,y), (rtag,x,y+j+1), lval * rval * rule.score)
+                    cell[rule.parent].append(cause)
+        
+        unaries = {}
+        for tag in cell:
+            for rule in self.grammar.get_unary_rules_by_child(tag):
+                unaries[rule.parent] = unaries.get(rule.parent, [])
+                cause = (None, tag, self.max_prob(cell[tag])[2] * rule.score)
+                unaries[rule.parent].append(cause)
+        
+        for tag in unaries:
+            cell[tag] = cell.get(tag, [])
+            cell[tag] = cell[tag] + unaries[tag]
+
+
+    def max_prob(self, causes):
+        prob = (None, None, 0.0)
+        for cause in causes:
+            prob = cause if cause[2] > prob[2] else prob
+        return prob
+
+
+    def build_tree(self, grid, tag, x, y):
+        cell = grid[x][y]
+        if not tag in cell: return Tree(tag, [])
+        
+        cause = self.max_prob(cell[tag])
+        
+        if cause[0] == None:
+            return Tree(tag, [self.build_tree(grid, cause[1], x, y)])
+        
+        left  = self.build_tree(grid, cause[0][0], cause[0][1], cause[0][2])
+        right = self.build_tree(grid, cause[1][0], cause[1][1], cause[1][2])
+        children = [left]
+        
+        if right.label[0] == '@':
+            children = children + right.children
+        else:
+            children.append(right)
+        
+        return Tree(tag, children)
 
 
 class BaselineParser(Parser):
