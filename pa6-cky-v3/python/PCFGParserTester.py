@@ -27,29 +27,10 @@ class PCFGParser(Parser):
 
     def train(self, train_trees):
         for i in range(len(train_trees)):
-            train_trees[i] = self.binarize_tree(train_trees[i])
+            train_trees[i] = TreeAnnotations.annotate_tree(train_trees[i])
 
         self.lexicon = Lexicon(train_trees)
         self.grammar = Grammar(train_trees)
-
-
-    def binarize_tree(self, tree):
-        if not tree or tree.is_leaf(): return tree
-        return self.binarize_list(tree.label, tree.children)
-
-
-    def binarize_list(self, label, list):
-        left = self.binarize_tree(list[0])
-        children = [left]
-        if len(list) == 1:
-            return Tree(label, children)
-        elif len(list) == 2:
-            children.append(self.binarize_tree(list[1]))
-            return Tree(label, children)
-        else:
-            right = self.binarize_list('@' + label + '_' + left.label, list[1:])
-            children.append(right)
-            return Tree(label, children)
 
 
     def get_best_parse(self, sentence):
@@ -70,8 +51,9 @@ class PCFGParser(Parser):
             for tag in self.lexicon.get_all_tags():
                 score = self.lexicon.score_tagging(word, tag)
                 cell[tag] = (None, word, score)
-                for rule in self.grammar.get_unary_rules_by_child(tag):
-                    cell[rule.parent] = (None, tag, score * rule.score)
+            
+            for tag in cell.keys():
+                self.expand_unaries(tag, cell, [])
         
         for i in range(len(sentence) - 1):
             row = i + 1
@@ -98,21 +80,28 @@ class PCFGParser(Parser):
                     cause = ((ltag,y+j,y), (rtag,x,y+j+1), lval * rval * rule.score)
                     self.store_cause(cell, rule.parent, cause)
         
-        unaries = {}
-        for tag in cell:
-            for rule in self.grammar.get_unary_rules_by_child(tag):
-                cause = (None, tag, cell[tag][2] * rule.score)
-                self.store_cause(unaries, rule.parent, cause)
-        
-        for tag in unaries:
-            self.store_cause(cell, tag, unaries[tag])
+        for tag in cell.keys():
+            self.expand_unaries(tag, cell, [])
+
+
+    def expand_unaries(self, tag, cell, stack):
+        if tag in stack: return
+        stack.append(tag)
+        for rule in self.grammar.get_unary_rules_by_child(tag):
+            cause = (None, tag, cell[tag][2] * rule.score)
+            if self.store_cause(cell, rule.parent, cause):
+                self.expand_unaries(rule.parent, cell, stack)
+        stack.pop()
 
 
     def store_cause(self, cell, tag, cause):
         if tag in cell and cell[tag][2] > cause[2]:
-            cell[tag]
-        else:
+            return False
+        elif cause[2] > 1e-64:
             cell[tag] = cause
+            return True
+        else:
+            return False
 
 
     def build_tree(self, grid, tag, x, y):
