@@ -66,7 +66,7 @@ class PCFGParser(Parser):
                     right = grid[x][y+j+1]
                     self.calculate_scores(cell, left, right, x, y, j)
         
-        tree = self.build_tree(grid, 'S', len(sentence) - 1, 0)
+        tree = self.build_tree(grid, 'S^ROOT', len(sentence) - 1, 0)
         return Tree('ROOT', [tree])
 
 
@@ -105,16 +105,17 @@ class PCFGParser(Parser):
 
 
     def build_tree(self, grid, tag, x, y):
+        label = re.sub('\^.*', '', tag)
         cell = grid[x][y]
-        if not tag in cell: return Tree(tag, [])
+        if not tag in cell: return Tree(label, [])
         
         cause = cell[tag]
         
         if cause[0] == None:
             if cause[1] == tag:
-                return Tree(tag, [Tree(tag, [])])
+                return Tree(label, [Tree(label, [])])
             else:
-                return Tree(tag, [self.build_tree(grid, cause[1], x, y)])
+                return Tree(label, [self.build_tree(grid, cause[1], x, y)])
         
         left  = self.build_tree(grid, cause[0][0], cause[0][1], cause[0][2])
         right = self.build_tree(grid, cause[1][0], cause[1][1], cause[1][2])
@@ -125,7 +126,7 @@ class PCFGParser(Parser):
         else:
             children.append(right)
         
-        return Tree(tag, children)
+        return Tree(label, children)
 
 
 class BaselineParser(Parser):
@@ -227,16 +228,16 @@ class TreeAnnotations:
 
     @classmethod
     def annotate_tree(cls, unannotated_tree):
-        """
-        Currently, the only annotation done is a lossless binarization
-        """
+        tree = TreeAnnotations.binarize_tree(unannotated_tree)
+        TreeAnnotations.markovize_tree(tree)
+        return tree
 
-        # TODO: change the annotation from a lossless binarization to a
-        # finite-order markov process (try at least 1st and 2nd order)
-        # mark nodes with the label of their parent nodes, giving a second
-        # order vertical markov process
-
-        return TreeAnnotations.binarize_tree(unannotated_tree)
+    @classmethod
+    def markovize_tree(cls, tree, parent=None, grandparent=None):
+        for child in tree.children:
+            TreeAnnotations.markovize_tree(child, tree.label, parent)
+        if not tree.is_leaf() and not tree.is_preterminal():
+            if parent: tree.label = tree.label + '^' + parent
 
     @classmethod
     def binarize_tree(cls, tree):
