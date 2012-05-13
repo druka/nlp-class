@@ -203,9 +203,11 @@ class IRSystem:
         Given a word, this returns the list of document indices (sorted) in
         which the word occurs.
         """
-        # ------------------------------------------------------------------
-        # TODO: return the list of postings for a word.
         posting = []
+        
+        for i in range(len(self.docs)):
+            if word in self.docs[i]:
+                posting.append(i)
 
         return posting
         # ------------------------------------------------------------------
