@@ -137,33 +137,23 @@ class IRSystem:
 
 
     def compute_tfidf(self):
-        # -------------------------------------------------------------------
-        # TODO: Compute and store TF-IDF values for words and documents.
-        #       Recall that you can make use of:
-        #         * self.vocab: a list of all distinct (stemmed) words
-        #         * self.docs: a list of lists, where the i-th document is
-        #                   self.docs[i] => ['word1', 'word2', ..., 'wordN']
-        #       NOTE that you probably do *not* want to store a value for every
-        #       word-document pair, but rather just for those pairs where a
-        #       word actually occurs in the document.
         print "Calculating tf-idf..."
         self.tfidf = {}
         for word in self.vocab:
             for d in range(len(self.docs)):
-                if word not in self.tfidf:
-                    self.tfidf[word] = {}
-                self.tfidf[word][d] = 0.0
-
-        # ------------------------------------------------------------------
+                if d not in self.tfidf:
+                    self.tfidf[d] = {}
+                tf = len(self.inv_index[word].get(d, []))
+                if tf == 0:
+                    self.tfidf[d][word] = 0.0
+                else:
+                    df = len(self.inv_index[word])
+                    n  = float(len(self.docs))
+                    self.tfidf[d][word] = (1 + math.log(tf, 10)) * math.log(n/df, 10)
 
 
     def get_tfidf(self, word, document):
-        # ------------------------------------------------------------------
-        # TODO: Return the tf-idf weigthing for the given word (string) and
-        #       document index.
-        tfidf = 0.0
-        # ------------------------------------------------------------------
-        return tfidf
+        return self.tfidf[document][word]
 
 
     def get_tfidf_unstemmed(self, word, document):
@@ -184,14 +174,15 @@ class IRSystem:
         
         inv_index = {}
         for i in range(len(self.docs)):
-            for word in self.docs[i]:
-                list = inv_index[word] = inv_index.get(word, [])
-                if len(list) == 0 or list[-1] != i:
-                    list.append(i)
+            for j in range(len(self.docs[i])):
+                word = self.docs[i][j]
+                if word not in inv_index:
+                    inv_index[word] = {}
+                if i not in inv_index[word]:
+                    inv_index[word][i] = []
+                inv_index[word][i].append(j)
 
         self.inv_index = inv_index
-
-        # ------------------------------------------------------------------
 
 
     def get_posting(self, word):
@@ -199,8 +190,8 @@ class IRSystem:
         Given a word, this returns the list of document indices (sorted) in
         which the word occurs.
         """
-        posting = self.inv_index.get(word, [])
-        return posting
+        posting = self.inv_index.get(word).keys()
+        return sorted(posting)
         # ------------------------------------------------------------------
 
 
@@ -234,22 +225,26 @@ class IRSystem:
         documents (by ID) and score for the query.
         """
         scores = [0.0 for xx in range(len(self.docs))]
-        # ------------------------------------------------------------------
-        # TODO: Implement cosine similarity between a document and a list of
-        #       query words.
-
-        # Right now, this code simply gets the score by taking the Jaccard
-        # similarity between the query and every document.
-        words_in_query = set()
-        for word in query:
-            words_in_query.add(word)
-
-        for d, doc in enumerate(self.docs):
-            words_in_doc = set(doc)
-            scores[d] = len(words_in_query.intersection(words_in_doc)) \
-                    / float(len(words_in_query.union(words_in_doc)))
-
-        # ------------------------------------------------------------------
+        
+        query_vector = {}
+        for word in self.vocab:
+            tf = query.count(word)
+            if tf == 0:
+                query_vector[word] = 0.0
+            else:
+                query_vector[word] = 1 + math.log(tf, 10)
+        
+        for d in range(len(self.docs)):
+            doc_vector = self.tfidf[d]
+            m1 = 0.0
+            m2 = 0.0
+            dp = 0.0
+            for word in query_vector:
+                m1 += math.pow(query_vector[word], 2)
+                m2 += math.pow(doc_vector[word], 2)
+                dp += query_vector[word] * doc_vector[word]
+            
+            scores[d] = dp / math.sqrt(m2)
 
         ranking = [idx for idx, sim in sorted(enumerate(scores),
             key = lambda xx : xx[1], reverse = True)]
