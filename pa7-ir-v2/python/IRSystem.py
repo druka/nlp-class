@@ -139,7 +139,12 @@ class IRSystem:
     def compute_tfidf(self):
         print "Calculating tf-idf..."
         self.tfidf = {}
+        n = float(len(self.docs))
+                    
         for word in self.vocab:
+            df  = len(self.inv_index[word])
+            idf = math.log(n/df, 10)
+            
             for d in range(len(self.docs)):
                 if d not in self.tfidf:
                     self.tfidf[d] = {}
@@ -147,9 +152,7 @@ class IRSystem:
                 if tf == 0:
                     self.tfidf[d][word] = 0.0
                 else:
-                    df = len(self.inv_index[word])
-                    n  = float(len(self.docs))
-                    self.tfidf[d][word] = (1 + math.log(tf, 10)) * math.log(n/df, 10)
+                    self.tfidf[d][word] = (1 + math.log(tf, 10)) * idf
 
 
     def get_tfidf(self, word, document):
