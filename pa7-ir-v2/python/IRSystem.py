@@ -181,17 +181,13 @@ class IRSystem:
         Build an index of the documents.
         """
         print "Indexing..."
-        # ------------------------------------------------------------------
-        # TODO: Create an inverted index.
-        #       Granted this may not be a linked list as in a proper
-        #       implementation.
-        #       Some helpful instance variables:
-        #         * self.docs = List of documents
-        #         * self.titles = List of titles
-
+        
         inv_index = {}
-        for word in self.vocab:
-            inv_index[word] = []
+        for i in range(len(self.docs)):
+            for word in self.docs[i]:
+                list = inv_index[word] = inv_index.get(word, [])
+                if len(list) == 0 or list[-1] != i:
+                    list.append(i)
 
         self.inv_index = inv_index
 
@@ -203,12 +199,7 @@ class IRSystem:
         Given a word, this returns the list of document indices (sorted) in
         which the word occurs.
         """
-        posting = []
-        
-        for i in range(len(self.docs)):
-            if word in self.docs[i]:
-                posting.append(i)
-
+        posting = self.inv_index.get(word, [])
         return posting
         # ------------------------------------------------------------------
 
@@ -230,15 +221,9 @@ class IRSystem:
         query).
         Return an empty list if the query does not return any documents.
         """
-        # ------------------------------------------------------------------
-        # TODO: Implement Boolean retrieval. You will want to use your
-        #       inverted index that you created in index().
-        # Right now this just returns all the possible documents!
-        docs = []
-        for d in range(len(self.docs)):
-            docs.append(d)
-
-        # ------------------------------------------------------------------
+        docs = range(len(self.docs))
+        for word in query:
+            docs = list(set(self.get_posting(word)) & set(docs))
 
         return sorted(docs)   # sorted doesn't actually matter
 
