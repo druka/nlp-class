@@ -1,4 +1,4 @@
-import sys, traceback
+import sys, traceback, re
 
 class Wiki:
     
@@ -14,19 +14,73 @@ class Wiki:
             sys.exit(1)    
         return wives
     
+    
+    def namesMatch(self, name1, name2):
+        match = True
+        for word in re.split('\s+', name1.strip()):
+            if not re.search(word, name2):
+                match = False
+        return match
+    
     # read through the wikipedia file and attempts to extract the matching husbands. note that you will need to provide
     # two different implementations based upon the useInfoBox flag. 
     def processFile(self, f, wives, useInfoBox):
         
-        husbands = [] 
+        husbands = []
+        mapping = []
+        text = f.read()
         
-        # TODO:
-        # Process the wiki file and fill the husbands Array
-        # +1 for correct Answer, 0 for no answer, -1 for wrong answers
-        # add 'No Answer' string as the answer when you dont want to answer
+        if useInfoBox:
+            for box in re.findall('\{\{Infobox([^|]+)(.*?)\n\}\}', text, re.S):
+                name = re.search('\|(?:N|n)ame\s*=(.*?)(\n|\|)', box[1])
+                spouse = re.search('\|(?:S|s)pouse\s*=(.*?)\n', box[1])
+                if name and spouse:
+                    name = name.groups()[0].strip()
+                    for wife in re.split('&lt;br\s*/&gt;', spouse.groups()[0]):
+                        wife = re.sub('\[|\]|\(.*|.*\|', '', wife).strip()
+                        mapping.append((name, wife))
+        else:
+            for page in re.findall('<page>(.*?)</page>', text, re.S):
+                title   = re.search('<title>(.*?)</title>', page).groups()[0]
+                surname = re.split('\s+', title.strip()).pop()
+                
+                text = re.search('<text.*?>(.*?)</text>', page, re.S).groups()[0]
+                text = re.sub('\{\{Infobox([^|]+)(.*?)\n\}\}', '', text)
+                
+                name_match = '(?:((?: [A-Z][a-zA-Z]*)+)| \[\[(.*?)\]\])'
+                prefixes = [
+                    surname + ' married',
+                    surname + ' met',
+                    surname + ' proposed to',
+                    ' he married',
+                    ' he met',
+                    ' he proposed to',
+                    ' is married to',
+                    ' has been married to',
+                    ' was married to'
+                ]
+                for prefix in prefixes:
+                    m = re.search(prefix + name_match, text, re.S)
+                    if m:
+                        for wife in m.groups():
+                            if wife: mapping.append((title, wife.strip()))
+                
+                m = re.search('((?:[A-Z][a-zA-Z]* )+)who married((?: [A-Z][a-zA-Z]*)+)', page, re.S)
+                if m:
+                    groups = m.groups()
+                    mapping.append((groups[1].strip(), groups[0].strip()))
         
         for wife in wives:
-            husbands.append('No Answer')
+            match = None
+            for pair in mapping:
+                if not match:
+                    if self.namesMatch(wife, pair[1]) or self.namesMatch(pair[1], wife):
+                        match = pair[0]
+            if match:
+                husbands.append('Who is ' + match + '?')
+            else:
+                husbands.append('No Answer')
+        
         f.close()
         return husbands
     
