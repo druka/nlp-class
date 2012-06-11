@@ -1,3 +1,4 @@
+import re
 
 # defines the components of a query result from Google.
 class GoogleQuery:
@@ -118,10 +119,29 @@ class Googling:
     # as your primary task in this method is to simply extract a guess for the location of the landmark given
     # Google results. you can, however, extract the landmark name from the given queries if you feel that helps.
     def guessLocation(self, data):
-        #TODO: use the GoogleQuery object for landmark to generate a tuple of the location
-        # of the landmark
-        print(data[1])
-        return Location('', '')
+        city = {}
+        country = {}
+        for query in data:
+            loc = re.findall('<LOCATION>(.*?)</LOCATION>', query.snip)
+            if len(loc) > 0:
+                place = re.sub('<.*?>.*', '', loc[0])
+                city[place] = city.get(place, 0) + 1
+            if len(loc) > 1:
+                country[loc[-1]] = country.get(loc[-1], 0) + 1
+        
+        city_name, city_score = None, 0
+        for name in city:
+            if city[name] > city_score:
+                city_name = name
+                city_score = city[name]
+        
+        country_name, country_score = None, 0
+        for name in country:
+            if name != city_name and country[name] > country_score:
+                country_name = name
+                country_score = country[name]
+        
+        return Location(city_name or '', country_name or '')
     
     # loops through each of the data associated with each query and passes it into the
     # guessLocation method, which returns the guess of the user
