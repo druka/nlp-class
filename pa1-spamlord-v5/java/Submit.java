@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.OutputStream;
+import java.io.StringWriter;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.json.simple.JSONArray;
 
 public class Submit {
 
@@ -76,6 +78,9 @@ public class Submit {
               "\n== [nlp] Submitted Homework %s - Part %d - %s",
               homework_id(), part, partNames.get(part - 1)));
       System.out.println("== " + result.trim());
+      if (result.trim().equals("Exception: We could not verify your username / password, please try again. (Note that your password is case-sensitive.)")) {
+	  System.out.println("== The password is not your login, but a 10 character alphanumeric string displayed on the top of the Assignments page.");
+      }
     }
   }
 
@@ -116,25 +121,28 @@ public class Submit {
   }
 
   private String writeContactsToJSON(List<SpamLord.Contact> contacts) {
-    SpamLord.Contact c;
-    String jarr = "[";
-    for (int i = 0; i < contacts.size(); i++) {
-      c = contacts.get(i);
-      if (i != 0) {
-	jarr += ",";
+      JSONArray jContact;
+      JSONArray jAll = new JSONArray();
+      
+      SpamLord.Contact c;
+      for (int i = 0; i < contacts.size(); i++) {
+	  c = contacts.get(i);
+	  jContact = new JSONArray();
+	  jContact.add(c.getFileName());
+	  jContact.add(c.getType());
+	  jContact.add(c.getValue());
+	  jAll.add(jContact);
       }
-      jarr += "[";
-      jarr += "\"" + c.getFileName() + "\"";
-      jarr += ",";
-      jarr += "\"" + c.getType() + "\"";
-      jarr += ",";
-      jarr += "\"" + c.getValue() + "\"";
-      jarr += "]";
-    }
-    jarr += "]";
-    return jarr; 
+      StringWriter out = new StringWriter();
+      String jarr = new String();
+      try {
+	  jAll.writeJSONString(out);
+	  jarr = out.toString();
+      } catch(java.io.IOException e) {
+	  System.err.println("[ERROR]\tcould not encode submission into JSON");
+      }
+      return jarr;
   }
-
 
   protected String output(int partId, String ch_aux) {
     SpamLord vader = new SpamLord();
@@ -146,10 +154,13 @@ public class Submit {
 
     List<SpamLord.Contact> guesses = new ArrayList<SpamLord.Contact>();
     if (partId == 1) {
-      guesses = vader.processDir("../data/dev");
+	System.err.println("== Running your code ...");
+	guesses = vader.processDir("../data/dev");
     } else if (partId == 2) {
-      guesses = vader.processFile("foo", new BufferedReader(new StringReader(ch_aux)));
+	System.err.println("== Running your code ...");
+	guesses = vader.processFile("foo", new BufferedReader(new StringReader(ch_aux)));
     }
+    System.err.println("== Finished running your code");
     String jsonGuesses = writeContactsToJSON(guesses);
     System.setOut(out);
     return jsonGuesses;
@@ -227,7 +238,8 @@ public class Submit {
       URLConnection connection = url.openConnection();
       connection.setDoOutput(true);
       OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream());
-      out.write("email_address=" + email);
+      // url encode e-mail
+      out.write("email_address=" + URLEncoder.encode(email, "UTF-8"));
       out.write("&assignment_part_sid=" + String.format("%s-%s", homework_id(), partId));
       out.write("&response_encoding=delim");
       out.close();
@@ -304,12 +316,14 @@ public class Submit {
   private String[] loginPrompt() {
     String[] results = new String[2];
     try {
-      System.out.print("Login (Email address): ");
+      //System.out.print("Login (Email address): ");
+      System.out.println("Login (Email address): ");
       BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
       String line = in.readLine();
       results[0] = line.trim();
 
-      System.out.print("Password: ");
+      //System.out.print("Password: ");
+      System.out.println("Password: ");
       line = in.readLine();
       results[1] = line.trim();
     } catch (IOException e) {

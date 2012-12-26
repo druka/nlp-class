@@ -22,7 +22,7 @@ public class SpamLord {
    * you can ignore the other functions which are just necessary for correct
    * behavior when used an element of a java.uitl.Set
    */
-  class Contact implements Comparable<Contact>{
+  static class Contact implements Comparable<Contact>{
     private String fileName;
     private String type;
     private String value;

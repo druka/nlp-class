@@ -49,9 +49,11 @@ def submit(partId):
     ch_resp = challengeResponse(login, password, ch)
     (result, string) = submitSolution(login, ch_resp, partId, output(partId, ch_aux), \
                                     source(partId), state, ch_aux)
-    print '\n== [nlp] Submitted Homework %s - Part %d - %s' % \
-          (homework_id(), partId, partNames[partId - 1]),
+    print '== [nlp] Submitted Homework %s - Part %d - %s' % \
+          (homework_id(), partId, partNames[partId - 1])
     print '== %s' % string.strip()
+    if (string.strip() == 'Exception: We could not verify your username / password, please try again. (Note that your password is case-sensitive.)'):
+      print '== The password is not your login, but a 10 character alphanumeric string displayed on the top of the Assignments page'
 
 
 
@@ -143,10 +145,12 @@ def challengeResponse(email, passwd, challenge):
 
 def challenge_url():
   """Returns the challenge url."""
+  #return "https://www.coursera.org/nlp-staging/assignment/challenge"
   return "https://www.coursera.org/nlp/assignment/challenge"
 
 def submit_url():
   """Returns the submission url."""
+  #return "https://www.coursera.org/nlp-staging/assignment/submit"
   return "https://www.coursera.org/nlp/assignment/submit"
 
 def submitSolution(email_address, ch_resp, part, output, source, state, ch_aux):
@@ -194,7 +198,9 @@ def source(partId):
 
 import SpamLord
 
+
 def dumps_list_of_lists(res):
+  """Deprecated version of JSON encoder. Used as a fallback if python cannot import json library."""
   s = '['
   for i, l in enumerate(res):
     if (i != 0):
@@ -208,10 +214,12 @@ def dumps_list_of_lists(res):
   s += ']'
   return s
 
+
 def output(partId, ch_aux):
   """Uses the student code to compute the output for test cases."""
 
   res = []
+  print '== Running your code ...'
   # disable printing:
   original_stdout = sys.stdout
   sys.stdout = NullDevice()
@@ -225,7 +233,13 @@ def output(partId, ch_aux):
     sys.stdout = original_stdout
     print '[WARNING]\t[output]\tunknown partId: %s' % partId
   sys.stdout = original_stdout
-  res_json = dumps_list_of_lists(res)
+  print '== Finished running your code'
+  try: 
+    import json
+    res_json = json.dumps(res)
+  except ImportError:
+    print '!!! Error importing json library. This is likely due to an early version of Python 2.6. Attempting to submit without json library. If this fails, please update to Python 2.7.'
+    res_json = dumps_list_of_lists(res)
   return res_json
 
 submit(0)
